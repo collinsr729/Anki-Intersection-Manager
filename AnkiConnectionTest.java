@@ -17,6 +17,8 @@ import de.adesso.anki.messages.*;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.net.*;
+import java.io.*;
 
 /**
  * A simple test program to test a connection to your Anki 'Supercars' and 'Supertrucks' using the NodeJS Bluetooth gateway.
@@ -46,7 +48,15 @@ public class AnkiConnectionTest {
             Iterator<Vehicle> iter = vehicles.iterator();
             while (iter.hasNext()) {
                  v = iter.next();
+
+                 VehicleInfo info = new VehicleInfo ();
+                 info.isMaster = false;
+                 info.isClear= false;
+//                 roadpieceid
+//                 info.
+
                 System.out.println("   " + v);
+
                 System.out.println("      ID: " + v.getAdvertisement().getIdentifier());
                 System.out.println("      Model: " + v.getAdvertisement().getModel());
                 System.out.println("      Model ID: " + v.getAdvertisement().getModelId());
@@ -101,7 +111,7 @@ public class AnkiConnectionTest {
 
                 //Thread.sleep(1000);
                 //gs.sendMessage(new TurnMessage());
-                System.out.print("Sleeping for 0secs... ");
+                System.out.print("Running for 20secs... ");
                 Thread.sleep(20000);
                 v.disconnect();
                 System.out.println("disconnected from " + v + "\n");
@@ -111,11 +121,13 @@ public class AnkiConnectionTest {
         System.exit(0);
     }
     public static void stop(int num){
-
-
+//        MyThread serverThread = new MyThread();
         if(num ==10 ){
         try{
                 v.sendMessage(new SetSpeedMessage(0, 10000));
+                //Server s = new Server(5001);
+            //Client c = new Client("localhost",5001);
+
             Thread.sleep(3000);
             v.sendMessage(new SetSpeedMessage(500, 500));
             Thread.sleep(500);
@@ -123,10 +135,134 @@ public class AnkiConnectionTest {
         }catch (Exception e){
         e.printStackTrace();
         }
+        }else{
+
         }
 
     }
+//    public static class MyThread extends Thread {
+//
+//        public void run(){
+//            System.out.println("MyThread running");
+//            Client c = new Client("localhost",5001);
+//            Server s = new Server(5001);
+//        }
+//    }
+    public class Client
+    {
+        // initialize socket and input output streams
+        private Socket socket            = null;
+        private DataInputStream  input   = null;
+        private DataOutputStream out     = null;
 
+        // constructor to put ip address and port
+        public Client(String address, int port)
+        {
+            // establish a connection
+            try
+            {
+                socket = new Socket(address, port);
+                System.out.println("Connected");
+
+                // takes input from terminal
+                input  = new DataInputStream(System.in);
+
+                // sends output to the socket
+                out    = new DataOutputStream(socket.getOutputStream());
+            }
+            catch(UnknownHostException u)
+            {
+                System.out.println(u);
+            }
+            catch(IOException i)
+            {
+                System.out.println(i);
+            }
+
+            // string to read message from input
+            String line = "";
+
+            // keep reading until "Over" is input
+            while (!line.equals("Over"))
+            {
+                try
+                {
+                    line = input.readLine();
+                    out.writeUTF(line);
+                }
+                catch(IOException i)
+                {
+                    System.out.println(i);
+                }
+            }
+
+            // close the connection
+            try
+            {
+                input.close();
+                out.close();
+                socket.close();
+            }
+            catch(IOException i)
+            {
+                System.out.println(i);
+            }
+        }
+    }
+
+    public static class Server
+    {
+        //initialize socket and input stream
+        private Socket          socket   = null;
+        private ServerSocket    server   = null;
+        private DataInputStream in       =  null;
+
+        // constructor with port
+        public Server(int port)
+        {
+            // starts server and waits for a connection
+            try
+            {
+                server = new ServerSocket(port);
+                System.out.println("Server started");
+
+                System.out.println("Waiting for a client ...");
+
+                socket = server.accept();
+                System.out.println("Client accepted");
+
+                // takes input from the client socket
+                in = new DataInputStream(
+                        new BufferedInputStream(socket.getInputStream()));
+
+                String line = "";
+
+                // reads message from client until "Over" is sent
+                while (!line.equals("Over"))
+                {
+                    try
+                    {
+                        line = in.readUTF();
+                        System.out.println(line);
+
+                    }
+                    catch(IOException i)
+                    {
+                        System.out.println(i);
+                    }
+                }
+                System.out.println("Closing connection");
+
+                // close connection
+                socket.close();
+                in.close();
+            }
+            catch(IOException i)
+            {
+                System.out.println(i);
+            }
+        }
+    }
     /**
      * Handles the response from the vehicle from the BatteryLevelRequestMessage.
      * We need handler classes because responses from the vehicles are asynchronous.
